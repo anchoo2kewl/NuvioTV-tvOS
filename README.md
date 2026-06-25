@@ -4,11 +4,15 @@ This folder contains a native SwiftUI tvOS target for sideloading on Apple TV.
 
 The Android app cannot be converted directly because it depends on Android-only components: Jetpack Compose, ExoPlayer/Media3, Android AARs, JNI `.so` libraries, and Android storage/runtime APIs. This target is a clean native tvOS app that reuses Nuvio branding and provides Apple TV remote navigation, Nuvio account login, synced add-ons, catalog browsing, search, source selection, and playback.
 
+![NuvioTV tvOS home carousel](docs/screenshots/home.jpg)
+
 ## Current features
 
 - Nuvio account login with email/password and TV code login.
 - Synced add-on loading from the Nuvio backend.
-- Home catalogs, search, item details, series episode selection, and stream/source selection.
+- Edge-to-edge rotating home carousel with synced catalog rows.
+- Home catalogs, search, item details, season-aware episode selection, and stream/source selection.
+- Episode previews with thumbnails, episode numbers, titles, and descriptions when add-ons expose metadata.
 - Remote-friendly add-on management: add, edit URL, reload, enable/disable, and remove.
 - Source metadata badges for quality, container, size, and seed information when providers expose it.
 - Native AVPlayer playback for HLS/MP4/web-ready sources.
@@ -73,6 +77,14 @@ xcodebuild test -project NuvioTV.xcodeproj -scheme NuvioTV -destination 'platfor
 ```
 
 If Xcode reports that the tvOS platform is not installed, install it from **Xcode > Settings > Components**, then rerun the commands.
+
+To capture repository screenshots with representative sample rows:
+
+```bash
+xcrun simctl launch booted com.anshumanbiswas.nuvio.tvos --demo-content
+xcrun simctl io booted screenshot docs/screenshots/home.png
+sips -Z 1920 -s format jpeg -s formatOptions 82 docs/screenshots/home.png --out docs/screenshots/home.jpg
+```
 
 ## Known gaps
 

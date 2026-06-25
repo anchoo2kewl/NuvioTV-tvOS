@@ -47,7 +47,7 @@ struct PlayerView: View {
             if let playbackError {
                 VStack(alignment: .leading, spacing: 10) {
                     Label("Playback failed", systemImage: "exclamationmark.triangle.fill")
-                        .font(.headline.weight(.bold))
+                        .font(.headline.weight(.medium))
                     Text(playbackError)
                         .font(.callout)
                         .foregroundStyle(.white.opacity(0.78))
@@ -159,10 +159,10 @@ private struct VLCControlsOverlay: View {
             HStack {
                 VStack(alignment: .leading, spacing: 6) {
                     Text(source.title)
-                        .font(.title2.weight(.bold))
+                        .font(.system(size: 28, weight: .medium))
                     Text(source.subtitle)
                         .font(.callout)
-                        .foregroundStyle(.white.opacity(0.72))
+                        .foregroundStyle(.white.opacity(0.62))
                         .lineLimit(1)
                 }
                 Spacer()

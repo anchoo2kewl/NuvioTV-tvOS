@@ -21,6 +21,7 @@ final class LibraryStore: ObservableObject {
     @Published var videos: [NuvioVideo] = []
     @Published var selectedItem: NuvioCatalogItem?
     @Published var selectedVideoID: String?
+    @Published var selectedSeason: Int?
     @Published var selectedContentSourceID: String = SourceSelection.all
     @Published var selectedSearchSourceID: String = SourceSelection.all
     @Published var selectedStreamSourceName: String = SourceSelection.all
@@ -42,13 +43,19 @@ final class LibraryStore: ObservableObject {
     private let defaults: UserDefaults
     private let sourceService = NuvioSourceService()
     private let supabaseService = SupabaseService()
+    private let usesDemoContent: Bool
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
+        self.usesDemoContent = ProcessInfo.processInfo.arguments.contains("--demo-content")
         self.directStreamURL = defaults.string(forKey: Keys.directStreamURL) ?? ""
         self.addonManifestURL = defaults.string(forKey: Keys.addonManifestURL) ?? ""
         self.installedAddons = Self.decode([NuvioAddon].self, from: defaults.data(forKey: Keys.installedAddons)) ?? []
         self.syncedPlugins = Self.decode([NuvioPluginRepo].self, from: defaults.data(forKey: Keys.syncedPlugins)) ?? []
+        if usesDemoContent {
+            self.installedAddons = [Self.demoAddon]
+            self.homeRows = Self.demoRows
+        }
     }
 
     func playDirectStream() {
@@ -145,6 +152,10 @@ final class LibraryStore: ObservableObject {
     }
 
     func loadHomeCatalogs() async {
+        guard !usesDemoContent else {
+            homeRows = Self.demoRows
+            return
+        }
         let contentAddons = installedAddons.filter { $0.canShowContent && $0.supportsCatalogResource }
         guard !contentAddons.isEmpty else {
             homeRows = []
@@ -224,6 +235,7 @@ final class LibraryStore: ObservableObject {
         streams = []
         videos = []
         selectedVideoID = nil
+        selectedSeason = nil
         selectedStreamSourceName = SourceSelection.all
         Task {
             await loadDetails(for: item)
@@ -233,6 +245,15 @@ final class LibraryStore: ObservableObject {
 
     func selectVideo(_ video: NuvioVideo, for item: NuvioCatalogItem) {
         selectedVideoID = video.id
+        selectedSeason = video.season
+        Task { await resolveStreams(for: item) }
+    }
+
+    func selectSeason(_ season: Int, for item: NuvioCatalogItem) {
+        selectedSeason = season
+        if let firstEpisode = videos.first(where: { $0.season == season }) {
+            selectedVideoID = firstEpisode.id
+        }
         Task { await resolveStreams(for: item) }
     }
 
@@ -246,11 +267,15 @@ final class LibraryStore: ObservableObject {
         do {
             let meta = try await sourceService.fetchMeta(addon: addon, item: item)
             videos = meta.videos
+            selectedSeason = meta.videos.compactMap(\.season).sorted().first
             if selectedVideoID == nil {
-                selectedVideoID = meta.videos.first?.id
+                selectedVideoID = selectedSeason.flatMap { season in
+                    meta.videos.first { $0.season == season }?.id
+                } ?? meta.videos.first?.id
             }
         } catch {
             videos = []
+            selectedSeason = nil
         }
     }
 
@@ -356,6 +381,15 @@ final class LibraryStore: ObservableObject {
         Array(Set(streams.map(\.addonName))).sorted()
     }
 
+    var seasonNumbers: [Int] {
+        Array(Set(videos.compactMap(\.season))).sorted()
+    }
+
+    var filteredVideos: [NuvioVideo] {
+        guard let selectedSeason else { return videos }
+        return videos.filter { $0.season == selectedSeason }
+    }
+
     var filteredStreams: [NuvioStream] {
         guard selectedStreamSourceName != SourceSelection.all else { return streams }
         return streams.filter { $0.addonName == selectedStreamSourceName }
@@ -393,6 +427,85 @@ final class LibraryStore: ObservableObject {
     private static func decode<T: Decodable>(_ type: T.Type, from data: Data?) -> T? {
         guard let data else { return nil }
         return try? JSONDecoder().decode(type, from: data)
+    }
+
+    private static let demoAddon = NuvioAddon(
+        id: "demo.cinemeta",
+        name: "Cinemeta",
+        version: "1.0.0",
+        description: "Demo catalog data for repository screenshots.",
+        logo: "https://picsum.photos/seed/nuvio-logo/300/300",
+        background: nil,
+        catalogs: [
+            NuvioCatalogDescriptor(
+                type: "movie",
+                id: "popular",
+                name: "Popular - Movies",
+                extra: [],
+                pageSize: nil,
+                extraSupported: [],
+                extraRequired: []
+            )
+        ],
+        resources: [NuvioAddonResource(name: "catalog", types: ["movie", "series"], idPrefixes: nil)],
+        types: ["movie", "series"],
+        idPrefixes: [],
+        baseURL: "https://demo.nuvio.local",
+        enabled: true,
+        userName: nil
+    )
+
+    private static let demoRows: [NuvioCatalogRow] = [
+        NuvioCatalogRow(
+            id: "demo-featured",
+            title: "Popular - Movies",
+            addonName: "Cinemeta",
+            addonBaseURL: "https://demo.nuvio.local",
+            items: [
+                demoItem("Night Meridian", seed: "night-meridian", year: "2026", genres: ["Sci-Fi", "Thriller"]),
+                demoItem("Signal Harbor", seed: "signal-harbor", year: "2025", genres: ["Drama", "Mystery"]),
+                demoItem("Afterglow", seed: "afterglow", year: "2024", genres: ["Adventure", "Fantasy"]),
+                demoItem("Northline", seed: "northline", year: "2026", genres: ["Action", "Crime"]),
+                demoItem("Velvet Static", seed: "velvet-static", year: "2025", genres: ["Drama", "Romance"]),
+                demoItem("Solar Wake", seed: "solar-wake", year: "2024", genres: ["Sci-Fi", "Adventure"])
+            ]
+        ),
+        NuvioCatalogRow(
+            id: "demo-series",
+            title: "Trending - Series",
+            addonName: "Cinemeta",
+            addonBaseURL: "https://demo.nuvio.local",
+            items: [
+                demoItem("The Long Return", seed: "long-return", year: "2026", genres: ["Drama", "Suspense"], type: "series"),
+                demoItem("Glass City", seed: "glass-city", year: "2025", genres: ["Crime", "Mystery"], type: "series"),
+                demoItem("Low Orbit", seed: "low-orbit", year: "2025", genres: ["Sci-Fi", "Drama"], type: "series"),
+                demoItem("Blackwater Road", seed: "blackwater-road", year: "2024", genres: ["Thriller", "Drama"], type: "series")
+            ]
+        )
+    ]
+
+    private static func demoItem(
+        _ name: String,
+        seed: String,
+        year: String,
+        genres: [String],
+        type: String = "movie"
+    ) -> NuvioCatalogItem {
+        NuvioCatalogItem(
+            id: "demo:\(seed)",
+            type: type,
+            name: name,
+            poster: "https://picsum.photos/seed/\(seed)-poster/420/630",
+            background: "https://picsum.photos/seed/\(seed)-backdrop/1600/900",
+            logo: nil,
+            description: "A cinematic demo item used to show the tvOS layout, carousel, poster rows, and source browsing presentation.",
+            releaseInfo: year,
+            imdbRating: "7.\(abs(seed.hashValue) % 9)",
+            genres: genres,
+            runtime: type == "movie" ? "2h 04m" : nil,
+            addonBaseURL: "https://demo.nuvio.local",
+            addonName: "Cinemeta"
+        )
     }
 }
 

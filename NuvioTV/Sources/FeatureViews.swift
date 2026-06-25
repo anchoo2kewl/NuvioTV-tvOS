@@ -4,14 +4,16 @@ struct HomeView: View {
     @EnvironmentObject private var store: LibraryStore
     @EnvironmentObject private var authStore: AuthStore
     let openDetails: (NuvioCatalogItem) -> Void
+    private let heroTimer = Timer.publish(every: 8, on: .main, in: .common).autoconnect()
 
     var body: some View {
         PageScaffold(
             title: "Nuvio",
-            subtitle: "Your synced Nuvio sources, library, search, and Apple TV playback.",
-            backdropURL: homeHero?.backdropURL
+            subtitle: "Synced sources and library.",
+            backdropURL: homeHero?.backdropURL,
+            showsHeader: false
         ) {
-            VStack(alignment: .leading, spacing: 42) {
+            VStack(alignment: .leading, spacing: 38) {
                 if let homeHero {
                     HomeHero(
                         item: homeHero,
@@ -33,10 +35,10 @@ struct HomeView: View {
                             ProgressView()
                         }
                     }
-                } else {
+                } else if homeHero == nil {
                     InfoPanel(
                         title: "Sign in to Nuvio",
-                        message: "Use Account to login, then this Apple TV will pull your Nuvio library, add-ons, and plugin repositories."
+                        message: "Use Account to sign in and sync your library, add-ons, and plugin repositories."
                     )
                 }
 
@@ -72,6 +74,12 @@ struct HomeView: View {
         .onChange(of: store.selectedContentSourceID) {
             store.selectedHeroIndex = 0
         }
+        .onReceive(heroTimer) { _ in
+            guard store.featuredItems.count > 1 else { return }
+            withAnimation(.easeInOut(duration: 0.55)) {
+                store.showNextFeatured()
+            }
+        }
     }
 
     private var homeHero: NuvioCatalogItem? {
@@ -93,7 +101,7 @@ struct SearchView: View {
     let openDetails: (NuvioCatalogItem) -> Void
 
     var body: some View {
-        PageScaffold(title: "Search", subtitle: "Search enabled Nuvio add-on catalogs.") {
+        PageScaffold(title: "Search", subtitle: "Find movies and series.") {
             VStack(alignment: .leading, spacing: 28) {
                 if !store.searchSources.isEmpty {
                     SourcePicker(
@@ -145,7 +153,7 @@ struct AddonsView: View {
     @EnvironmentObject private var store: LibraryStore
 
     var body: some View {
-        PageScaffold(title: "Add-ons", subtitle: "Install and manage Nuvio/Stremio-compatible add-on manifests used by Nuvio.") {
+        PageScaffold(title: "Add-ons", subtitle: "Manage synced source manifests.") {
             VStack(alignment: .leading, spacing: 28) {
                 HStack(spacing: 18) {
                     TextField("https://addon.example.com/manifest.json", text: $store.addonManifestURL)
@@ -190,7 +198,7 @@ struct PluginsView: View {
     @EnvironmentObject private var authStore: AuthStore
 
     var body: some View {
-        PageScaffold(title: "Plugins", subtitle: "Plugin repositories synced from Nuvio.") {
+        PageScaffold(title: "Plugins", subtitle: "Synced repositories.") {
             VStack(alignment: .leading, spacing: 24) {
                 HStack(spacing: 18) {
                     Button {
@@ -233,7 +241,7 @@ struct LibraryView: View {
     let openDetails: (NuvioCatalogItem) -> Void
 
     var body: some View {
-        PageScaffold(title: "Library", subtitle: "Your synced Nuvio content on Apple TV.") {
+        PageScaffold(title: "Library", subtitle: "Your Nuvio collection.") {
             VStack(alignment: .leading, spacing: 34) {
                 HStack(spacing: 18) {
                     Button {
@@ -274,7 +282,7 @@ struct SettingsView: View {
     @EnvironmentObject private var authStore: AuthStore
 
     var body: some View {
-        PageScaffold(title: "Settings", subtitle: "Nuvio backend and sideload configuration.") {
+        PageScaffold(title: "Settings", subtitle: "Backend and sideload configuration.") {
             VStack(alignment: .leading, spacing: 24) {
                 TextField("Supabase URL", text: $authStore.config.supabaseURL)
                     .nuvioTextField()
@@ -317,14 +325,14 @@ struct DetailView: View {
 
                     VStack(alignment: .leading, spacing: 20) {
                         Text(item.description ?? "No description returned by this Nuvio source.")
-                            .font(.title3)
-                            .foregroundStyle(.white.opacity(0.82))
+                            .font(.system(size: 25, weight: .regular))
+                            .foregroundStyle(.white.opacity(0.74))
                             .lineLimit(7)
                             .frame(maxWidth: 1050, alignment: .leading)
 
                         Text("Source: \(item.addonName)")
-                            .font(.headline)
-                            .foregroundStyle(.white.opacity(0.62))
+                            .font(.callout.weight(.medium))
+                            .foregroundStyle(.white.opacity(0.52))
 
                         HStack(spacing: 16) {
                             Button {
@@ -377,11 +385,11 @@ struct Header: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(title)
-                .font(.system(size: 58, weight: .bold))
+                .font(.system(size: 48, weight: .medium))
                 .lineLimit(2)
             Text(subtitle)
-                .font(.title3.weight(.medium))
-                .foregroundStyle(.white.opacity(0.66))
+                .font(.system(size: 24, weight: .regular))
+                .foregroundStyle(.white.opacity(0.52))
         }
     }
 }
@@ -392,7 +400,7 @@ private struct CatalogRowView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
-            RowHeader(title: "\(row.title) - \(row.addonName)")
+            RowHeader(title: row.title, subtitle: row.addonName)
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 24) {
                     ForEach(row.items) { item in
@@ -433,44 +441,44 @@ private struct HomeHero: View {
                     )
                 }
             }
-            .frame(maxWidth: .infinity, minHeight: 610, maxHeight: 610)
+            .frame(maxWidth: .infinity, minHeight: 690, maxHeight: 690)
             .clipped()
 
             LinearGradient(
-                colors: [.black.opacity(0.02), .black.opacity(0.34), .black.opacity(0.98)],
+                colors: [.black.opacity(0.0), .black.opacity(0.28), .black.opacity(0.96)],
                 startPoint: .top,
                 endPoint: .bottom
             )
 
             LinearGradient(
-                colors: [.black.opacity(0.96), .black.opacity(0.56), .black.opacity(0.08), .clear],
+                colors: [.black.opacity(0.88), .black.opacity(0.50), .black.opacity(0.06), .clear],
                 startPoint: .leading,
                 endPoint: .trailing
             )
 
             HStack(alignment: .bottom, spacing: 34) {
                 RemotePoster(url: item.posterURL)
-                    .frame(width: 190, height: 285)
+                    .frame(width: 180, height: 270)
                     .clipShape(RoundedRectangle(cornerRadius: 8))
                     .shadow(color: .black.opacity(0.55), radius: 24, x: 0, y: 14)
 
                 VStack(alignment: .leading, spacing: 16) {
                     Text(item.name)
-                        .font(.system(size: 60, weight: .bold))
+                        .font(.system(size: 58, weight: .medium))
                         .lineLimit(2)
-                        .frame(maxWidth: 900, alignment: .leading)
+                        .frame(maxWidth: 980, alignment: .leading)
 
                     if !item.subtitle.isEmpty {
                         Text(item.subtitle)
-                            .font(.title3.weight(.semibold))
-                            .foregroundStyle(.white.opacity(0.72))
+                            .font(.system(size: 23, weight: .regular))
+                            .foregroundStyle(.white.opacity(0.58))
                     }
 
                     Text(item.description ?? "Open details to resolve streams from your Nuvio sources.")
-                        .font(.title3)
-                        .foregroundStyle(.white.opacity(0.86))
+                        .font(.system(size: 25, weight: .regular))
+                        .foregroundStyle(.white.opacity(0.76))
                         .lineLimit(3)
-                        .frame(maxWidth: 860, alignment: .leading)
+                        .frame(maxWidth: 940, alignment: .leading)
 
                     HStack(spacing: 16) {
                         if canMove {
@@ -502,7 +510,7 @@ private struct HomeHero: View {
                 }
             }
             .padding(.horizontal, 150)
-            .padding(.bottom, 42)
+            .padding(.bottom, 56)
 
             if canMove {
                 HStack(spacing: 8) {
@@ -514,7 +522,7 @@ private struct HomeHero: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .trailing)
                 .padding(.trailing, 42)
-                .padding(.bottom, 44)
+                .padding(.bottom, 58)
             }
         }
         .frame(maxWidth: .infinity)
@@ -562,7 +570,8 @@ private struct CatalogPosterButton: View {
                     .clipShape(RoundedRectangle(cornerRadius: 8))
 
                 Text(item.name)
-                    .font(.headline.weight(.semibold))
+                    .font(.system(size: 22, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.86))
                     .lineLimit(2)
                     .frame(width: 210, alignment: .leading)
             }
@@ -579,8 +588,8 @@ private struct SourcePicker: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text(title)
-                .font(.headline.weight(.semibold))
-                .foregroundStyle(.white.opacity(0.72))
+                .font(.system(size: 19, weight: .medium))
+                .foregroundStyle(.white.opacity(0.54))
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 14) {
@@ -607,8 +616,8 @@ private struct StreamSourcePicker: View {
         if !store.streamSourceNames.isEmpty {
             VStack(alignment: .leading, spacing: 14) {
                 Text("Play source")
-                    .font(.headline.weight(.semibold))
-                    .foregroundStyle(.white.opacity(0.72))
+                    .font(.system(size: 19, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.54))
 
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 14) {
@@ -637,10 +646,10 @@ private struct SourceChip: View {
     var body: some View {
         Button(action: action) {
             Text(title)
-                .font(.headline.weight(.bold))
+                .font(.system(size: 19, weight: .medium))
                 .lineLimit(1)
-                .padding(.horizontal, 22)
-                .padding(.vertical, 14)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 12)
         }
         .buttonStyle(SourceChipButtonStyle(isSelected: isSelected))
     }
@@ -659,14 +668,14 @@ private struct AddonPanel: View {
 
                 VStack(alignment: .leading, spacing: 8) {
                     Text(addon.displayName)
-                        .font(.title3.weight(.bold))
+                        .font(.system(size: 25, weight: .medium))
                     Text(addon.description ?? addon.baseURL)
                         .font(.callout)
-                        .foregroundStyle(.white.opacity(0.68))
+                        .foregroundStyle(.white.opacity(0.60))
                         .lineLimit(2)
                     Text("\(addon.catalogs.count) catalogs - \(addon.resources.count) resources - \(addon.enabled ? "Enabled" : "Disabled")")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.white.opacity(0.55))
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(.white.opacity(0.48))
                     Text(addon.manifestURL)
                         .font(.caption)
                         .foregroundStyle(.white.opacity(0.45))
@@ -708,7 +717,11 @@ private struct AddonPanel: View {
         }
         .frame(maxWidth: 1180, alignment: .leading)
         .padding(24)
-        .background(.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
+        .background(.white.opacity(0.055), in: RoundedRectangle(cornerRadius: 8))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(.white.opacity(0.08), lineWidth: 1)
+        )
     }
 }
 
@@ -717,13 +730,26 @@ private struct EpisodePicker: View {
     let item: NuvioCatalogItem
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 16) {
             RowHeader(title: "Episodes")
 
+            if store.seasonNumbers.count > 1 {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 14) {
+                        ForEach(store.seasonNumbers, id: \.self) { season in
+                            SourceChip(title: "Season \(season)", isSelected: store.selectedSeason == season) {
+                                store.selectSeason(season, for: item)
+                            }
+                        }
+                    }
+                    .padding(.vertical, 8)
+                }
+            }
+
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 14) {
-                    ForEach(store.videos) { video in
-                        SourceChip(title: video.displayTitle, isSelected: store.selectedVideoID == video.id) {
+                HStack(spacing: 18) {
+                    ForEach(store.filteredVideos) { video in
+                        EpisodeCard(video: video, isSelected: store.selectedVideoID == video.id) {
                             store.selectVideo(video, for: item)
                         }
                     }
@@ -731,6 +757,49 @@ private struct EpisodePicker: View {
                 .padding(.vertical, 8)
             }
         }
+    }
+}
+
+private struct EpisodeCard: View {
+    let video: NuvioVideo
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            VStack(alignment: .leading, spacing: 12) {
+                ZStack(alignment: .bottomLeading) {
+                    RemotePoster(url: video.thumbnail.flatMap(URL.init(string:)))
+                        .frame(width: 310, height: 174)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+
+                    if let episodeNumber = video.episode {
+                        Text("E\(episodeNumber)")
+                            .font(.caption.weight(.medium))
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(.black.opacity(0.72), in: Capsule())
+                            .padding(10)
+                    }
+                }
+
+                VStack(alignment: .leading, spacing: 5) {
+                    Text(video.title)
+                        .font(.system(size: 21, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.88))
+                        .lineLimit(2)
+
+                    if let description = video.description, !description.isEmpty {
+                        Text(description)
+                            .font(.caption)
+                            .foregroundStyle(.white.opacity(0.50))
+                            .lineLimit(2)
+                    }
+                }
+                .frame(width: 310, alignment: .leading)
+            }
+        }
+        .buttonStyle(EpisodeCardButtonStyle(isSelected: isSelected))
     }
 }
 
@@ -746,19 +815,23 @@ private struct PluginPanel: View {
 
             VStack(alignment: .leading, spacing: 8) {
                 Text(plugin.name ?? plugin.url)
-                    .font(.title3.weight(.bold))
+                    .font(.system(size: 25, weight: .medium))
                     .lineLimit(1)
                 Text(plugin.url)
                     .font(.callout)
-                    .foregroundStyle(.white.opacity(0.68))
+                    .foregroundStyle(.white.opacity(0.60))
                     .lineLimit(2)
                 Text("\(plugin.repoType ?? "repository") - \(plugin.enabled ? "Enabled" : "Disabled")")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.white.opacity(0.55))
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.white.opacity(0.48))
             }
         }
         .padding(24)
-        .background(.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
+        .background(.white.opacity(0.055), in: RoundedRectangle(cornerRadius: 8))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(.white.opacity(0.08), lineWidth: 1)
+        )
     }
 }
 
@@ -778,17 +851,17 @@ private struct StreamButton: View {
 
                 VStack(alignment: .leading, spacing: 6) {
                     Text(stream.displayTitle)
-                        .font(.headline.weight(.bold))
+                        .font(.system(size: 22, weight: .medium))
                         .lineLimit(2)
                     Text(stream.isPlayableOnTV ? stream.addonName : "\(stream.addonName) - no direct playable URL")
                         .font(.callout)
-                        .foregroundStyle(.white.opacity(0.64))
+                        .foregroundStyle(.white.opacity(0.56))
                         .lineLimit(1)
                     if !stream.metadataBadges.isEmpty {
                         HStack(spacing: 10) {
                             ForEach(stream.metadataBadges, id: \.self) { badge in
                                 Text(badge)
-                                    .font(.caption.weight(.semibold))
+                                    .font(.caption.weight(.medium))
                                     .padding(.horizontal, 10)
                                     .padding(.vertical, 5)
                                     .background(.white.opacity(0.12), in: RoundedRectangle(cornerRadius: 6))
@@ -836,14 +909,20 @@ private struct DirectStreamPanel: View {
 
 private struct RowHeader: View {
     let title: String
+    var subtitle: String?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 7) {
+        HStack(alignment: .firstTextBaseline, spacing: 14) {
             Text(title)
-                .font(.system(size: 31, weight: .bold))
-            RoundedRectangle(cornerRadius: 2)
-                .fill(.white)
-                .frame(width: 78, height: 4)
+                .font(.system(size: 27, weight: .medium))
+                .foregroundStyle(.white.opacity(0.92))
+
+            if let subtitle, !subtitle.isEmpty {
+                Text(subtitle)
+                    .font(.system(size: 18, weight: .regular))
+                    .foregroundStyle(.white.opacity(0.44))
+                    .lineLimit(1)
+            }
         }
     }
 }
@@ -884,12 +963,20 @@ private struct PageScaffold<Content: View>: View {
     let title: String
     let subtitle: String
     let backdropURL: URL?
+    let showsHeader: Bool
     @ViewBuilder let content: Content
 
-    init(title: String, subtitle: String, backdropURL: URL? = nil, @ViewBuilder content: () -> Content) {
+    init(
+        title: String,
+        subtitle: String,
+        backdropURL: URL? = nil,
+        showsHeader: Bool = true,
+        @ViewBuilder content: () -> Content
+    ) {
         self.title = title
         self.subtitle = subtitle
         self.backdropURL = backdropURL
+        self.showsHeader = showsHeader
         self.content = content()
     }
 
@@ -899,7 +986,9 @@ private struct PageScaffold<Content: View>: View {
 
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 38) {
-                    Header(title: title, subtitle: subtitle)
+                    if showsHeader {
+                        Header(title: title, subtitle: subtitle)
+                    }
                     content
 
                     if let errorMessage = currentError {
@@ -910,7 +999,7 @@ private struct PageScaffold<Content: View>: View {
                     }
                 }
                 .padding(.horizontal, 82)
-                .padding(.top, 70)
+                .padding(.top, showsHeader ? 70 : 0)
                 .padding(.bottom, 90)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
@@ -936,7 +1025,7 @@ private struct BackdropLayer: View {
                     image
                         .resizable()
                         .scaledToFill()
-                        .opacity(0.28)
+                        .opacity(0.34)
                 default:
                     LinearGradient(
                         colors: [
@@ -952,7 +1041,7 @@ private struct BackdropLayer: View {
             .ignoresSafeArea()
 
             LinearGradient(
-                colors: [.black.opacity(0.88), .black.opacity(0.72), .black],
+                colors: [.black.opacity(0.82), .black.opacity(0.68), .black],
                 startPoint: .top,
                 endPoint: .bottom
             )
@@ -968,15 +1057,19 @@ private struct InfoPanel: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(title)
-                .font(.title3.weight(.semibold))
+                .font(.system(size: 25, weight: .medium))
             Text(message)
                 .font(.body)
-                .foregroundStyle(.white.opacity(0.68))
+                .foregroundStyle(.white.opacity(0.58))
                 .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: 980, alignment: .leading)
-        .padding(28)
-        .background(.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
+        .padding(24)
+        .background(.white.opacity(0.055), in: RoundedRectangle(cornerRadius: 8))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(.white.opacity(0.08), lineWidth: 1)
+        )
     }
 }
 
@@ -995,11 +1088,38 @@ private struct PosterButtonStyle: ButtonStyle {
                 .foregroundStyle(.white)
                 .overlay(
                     RoundedRectangle(cornerRadius: 10)
-                        .stroke(isFocused ? Color.white : .clear, lineWidth: 5)
+                        .stroke(isFocused ? Color.white.opacity(0.86) : .clear, lineWidth: 4)
                         .padding(-8)
                 )
-                .shadow(color: isFocused ? .black.opacity(0.55) : .clear, radius: 18, x: 0, y: 12)
-                .scaleEffect(isPressed ? 0.96 : (isFocused ? 1.08 : 1))
+                .shadow(color: isFocused ? .black.opacity(0.50) : .clear, radius: 16, x: 0, y: 10)
+                .scaleEffect(isPressed ? 0.97 : (isFocused ? 1.055 : 1))
+                .animation(.easeOut(duration: 0.14), value: isFocused)
+        }
+    }
+}
+
+private struct EpisodeCardButtonStyle: ButtonStyle {
+    let isSelected: Bool
+
+    func makeBody(configuration: Configuration) -> some View {
+        FocusedEpisodeCard(label: configuration.label, isPressed: configuration.isPressed, isSelected: isSelected)
+    }
+
+    private struct FocusedEpisodeCard<Label: View>: View {
+        @Environment(\.isFocused) private var isFocused
+        let label: Label
+        let isPressed: Bool
+        let isSelected: Bool
+
+        var body: some View {
+            label
+                .padding(10)
+                .background(.white.opacity(isSelected ? 0.09 : 0.0), in: RoundedRectangle(cornerRadius: 10))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10)
+                        .stroke(isFocused ? Color.white.opacity(0.80) : (isSelected ? .white.opacity(0.24) : .clear), lineWidth: isFocused ? 3 : 1)
+                )
+                .scaleEffect(isPressed ? 0.97 : (isFocused ? 1.045 : 1))
                 .animation(.easeOut(duration: 0.14), value: isFocused)
         }
     }
@@ -1019,10 +1139,10 @@ private struct MediaPanelButtonStyle: ButtonStyle {
             label
                 .foregroundStyle(.white)
                 .padding(24)
-                .background(.white.opacity(isPressed || isFocused ? 0.16 : 0.08), in: RoundedRectangle(cornerRadius: 8))
+                .background(.white.opacity(isPressed || isFocused ? 0.135 : 0.055), in: RoundedRectangle(cornerRadius: 8))
                 .overlay(
                     RoundedRectangle(cornerRadius: 8)
-                        .stroke(isFocused ? Color.white.opacity(0.8) : .clear, lineWidth: 3)
+                        .stroke(isFocused ? Color.white.opacity(0.72) : .white.opacity(0.08), lineWidth: isFocused ? 2 : 1)
                 )
                 .scaleEffect(isPressed ? 0.98 : (isFocused ? 1.02 : 1))
                 .animation(.easeOut(duration: 0.14), value: isFocused)
@@ -1046,12 +1166,12 @@ private struct SourceChipButtonStyle: ButtonStyle {
         var body: some View {
             label
                 .foregroundStyle(isSelected || isFocused ? .black : .white)
-                .background(isSelected || isFocused ? .white : .white.opacity(0.10), in: RoundedRectangle(cornerRadius: 8))
+                .background(isSelected || isFocused ? .white.opacity(0.92) : .white.opacity(0.075), in: RoundedRectangle(cornerRadius: 8))
                 .overlay(
                     RoundedRectangle(cornerRadius: 8)
-                        .stroke(isFocused ? Color.white.opacity(0.9) : .white.opacity(0.12), lineWidth: isFocused ? 3 : 1)
+                        .stroke(isFocused ? Color.white.opacity(0.8) : .white.opacity(0.10), lineWidth: isFocused ? 2 : 1)
                 )
-                .scaleEffect(isPressed ? 0.96 : (isFocused ? 1.06 : 1))
+                .scaleEffect(isPressed ? 0.97 : (isFocused ? 1.035 : 1))
                 .animation(.easeOut(duration: 0.14), value: isFocused)
         }
     }
@@ -1061,7 +1181,7 @@ extension View {
     func nuvioTextField() -> some View {
         self
             .textFieldStyle(.plain)
-            .font(.title3)
+            .font(.system(size: 23, weight: .regular))
             .padding(.horizontal, 20)
             .padding(.vertical, 18)
             .background(.black.opacity(0.35), in: RoundedRectangle(cornerRadius: 8))

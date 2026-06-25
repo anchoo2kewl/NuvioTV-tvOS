@@ -9,7 +9,7 @@ struct AccountView: View {
 
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 34) {
-                    Header(title: "Account", subtitle: "Sign in to Nuvio and sync your content to this Apple TV.")
+                    Header(title: "Account", subtitle: "Sign in and sync Nuvio.")
 
                     if authStore.isSignedIn {
                         ConnectedAccountPanel()
@@ -80,23 +80,23 @@ private struct TvLoginPanel: View {
                 if let login = authStore.tvLogin {
                     VStack(alignment: .leading, spacing: 12) {
                         Text(login.webURL)
-                            .font(.title3.weight(.semibold))
-                            .foregroundStyle(.white)
+                            .font(.system(size: 24, weight: .medium))
+                            .foregroundStyle(.white.opacity(0.88))
                             .lineLimit(2)
 
                         Text("Code: \(login.code)")
-                            .font(.system(size: 42, weight: .bold, design: .rounded))
+                            .font(.system(size: 40, weight: .medium, design: .rounded))
 
                         Text(authStore.tvLoginStatus ?? "Waiting for approval.")
-                            .font(.headline)
-                            .foregroundStyle(.white.opacity(0.66))
+                            .font(.callout.weight(.regular))
+                            .foregroundStyle(.white.opacity(0.56))
                     }
                     .padding(20)
                     .background(.black.opacity(0.34), in: RoundedRectangle(cornerRadius: 10))
                 } else {
                     Text("No active TV login session.")
-                        .font(.headline)
-                        .foregroundStyle(.white.opacity(0.66))
+                        .font(.callout.weight(.regular))
+                        .foregroundStyle(.white.opacity(0.56))
                 }
 
                 HStack(spacing: 16) {
@@ -154,9 +154,9 @@ private struct SyncedAccountStats: View {
         if let overview = authStore.overview {
             VStack(alignment: .leading, spacing: 12) {
                 Text("Synced data")
-                    .font(.headline)
+                    .font(.system(size: 22, weight: .medium))
                 Text("\(overview.profiles.count) profiles, \(overview.totalLibraryItems) library items, \(overview.totalWatchProgress) progress records, \(overview.totalWatchedItems) watched items.")
-                    .foregroundStyle(.white.opacity(0.68))
+                    .foregroundStyle(.white.opacity(0.58))
             }
         }
     }
@@ -171,21 +171,21 @@ private struct AccountPanel<Content: View>: View {
         VStack(alignment: .leading, spacing: 22) {
             VStack(alignment: .leading, spacing: 8) {
                 Text(title)
-                    .font(.system(size: 32, weight: .bold))
+                    .font(.system(size: 29, weight: .medium))
                 Text(subtitle)
-                    .font(.headline)
-                    .foregroundStyle(.white.opacity(0.66))
+                    .font(.callout.weight(.regular))
+                    .foregroundStyle(.white.opacity(0.56))
                     .fixedSize(horizontal: false, vertical: true)
             }
 
             content
         }
         .frame(width: 560, alignment: .leading)
-        .padding(30)
-        .background(.white.opacity(0.09), in: RoundedRectangle(cornerRadius: 10))
+        .padding(28)
+        .background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 8))
         .overlay(
-            RoundedRectangle(cornerRadius: 10)
-                .stroke(.white.opacity(0.10), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(.white.opacity(0.08), lineWidth: 1)
         )
     }
 }
@@ -195,8 +195,8 @@ private struct AccountBackdrop: View {
         ZStack {
             LinearGradient(
                 colors: [
-                    Color(red: 0.03, green: 0.04, blue: 0.06),
-                    Color(red: 0.07, green: 0.10, blue: 0.14),
+                    Color(red: 0.025, green: 0.03, blue: 0.04),
+                    Color(red: 0.055, green: 0.07, blue: 0.09),
                     .black
                 ],
                 startPoint: .topTrailing,
@@ -207,7 +207,7 @@ private struct AccountBackdrop: View {
                 .resizable()
                 .scaledToFit()
                 .frame(width: 520)
-                .opacity(0.09)
+                .opacity(0.07)
                 .offset(x: 520, y: -140)
 
             LinearGradient(
@@ -223,13 +223,13 @@ private extension View {
     func accountTextField() -> some View {
         self
             .textFieldStyle(.plain)
-            .font(.title3)
+            .font(.system(size: 23, weight: .regular))
             .padding(.horizontal, 20)
             .padding(.vertical, 18)
-            .background(.black.opacity(0.34), in: RoundedRectangle(cornerRadius: 10))
+            .background(.black.opacity(0.28), in: RoundedRectangle(cornerRadius: 8))
             .overlay(
-                RoundedRectangle(cornerRadius: 10)
-                    .stroke(.white.opacity(0.12), lineWidth: 1)
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(.white.opacity(0.10), lineWidth: 1)
             )
     }
 }
