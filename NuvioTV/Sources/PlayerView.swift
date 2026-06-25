@@ -26,6 +26,27 @@ struct PlayerView: View {
                         revealVLCControls()
                     }
 
+                if !showsVLCControls && playbackError == nil {
+                    VLCRemoteInputCatcher(
+                        onRevealControls: revealVLCControls,
+                        onClose: store.closePlayer,
+                        onTogglePlayPause: {
+                            vlcPlayback.togglePlayPause()
+                            revealVLCControls()
+                        },
+                        onJumpBackward: {
+                            vlcPlayback.jumpBackward()
+                            revealVLCControls()
+                        },
+                        onJumpForward: {
+                            vlcPlayback.jumpForward()
+                            revealVLCControls()
+                        }
+                    )
+                    .ignoresSafeArea()
+                    .transition(.opacity)
+                }
+
                 if showsVLCControls || playbackError != nil {
                     VLCControlsOverlay(
                         source: source,
@@ -96,8 +117,7 @@ struct PlayerView: View {
         }
         .onExitCommand {
             if source.playbackEngine == .vlc && showsVLCControls && playbackError == nil {
-                hideControlsTask?.cancel()
-                showsVLCControls = false
+                hideVLCControls()
             } else {
                 store.closePlayer()
             }
@@ -132,6 +152,11 @@ struct PlayerView: View {
             }
         }
     }
+
+    private func hideVLCControls() {
+        hideControlsTask?.cancel()
+        showsVLCControls = false
+    }
 }
 
 private struct VLCVideoSurface: UIViewRepresentable {
@@ -147,6 +172,111 @@ private struct VLCVideoSurface: UIViewRepresentable {
     func updateUIView(_ view: UIView, context: Context) {
         playback.attach(to: view)
     }
+}
+
+private struct VLCRemoteInputCatcher: UIViewRepresentable {
+    let onRevealControls: () -> Void
+    let onClose: () -> Void
+    let onTogglePlayPause: () -> Void
+    let onJumpBackward: () -> Void
+    let onJumpForward: () -> Void
+
+    func makeUIView(context: Context) -> RemoteInputView {
+        let view = RemoteInputView()
+        view.backgroundColor = .clear
+        view.handlers = context.coordinator
+        return view
+    }
+
+    func updateUIView(_ view: RemoteInputView, context: Context) {
+        context.coordinator.onRevealControls = onRevealControls
+        context.coordinator.onClose = onClose
+        context.coordinator.onTogglePlayPause = onTogglePlayPause
+        context.coordinator.onJumpBackward = onJumpBackward
+        context.coordinator.onJumpForward = onJumpForward
+        view.handlers = context.coordinator
+        DispatchQueue.main.async {
+            view.requestFocus()
+        }
+    }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(
+            onRevealControls: onRevealControls,
+            onClose: onClose,
+            onTogglePlayPause: onTogglePlayPause,
+            onJumpBackward: onJumpBackward,
+            onJumpForward: onJumpForward
+        )
+    }
+
+    final class Coordinator: NSObject, RemoteInputHandling {
+        var onRevealControls: () -> Void
+        var onClose: () -> Void
+        var onTogglePlayPause: () -> Void
+        var onJumpBackward: () -> Void
+        var onJumpForward: () -> Void
+
+        init(
+            onRevealControls: @escaping () -> Void,
+            onClose: @escaping () -> Void,
+            onTogglePlayPause: @escaping () -> Void,
+            onJumpBackward: @escaping () -> Void,
+            onJumpForward: @escaping () -> Void
+        ) {
+            self.onRevealControls = onRevealControls
+            self.onClose = onClose
+            self.onTogglePlayPause = onTogglePlayPause
+            self.onJumpBackward = onJumpBackward
+            self.onJumpForward = onJumpForward
+        }
+
+        func handlePress(_ pressType: UIPress.PressType) {
+            switch pressType {
+            case .select, .downArrow, .upArrow:
+                onRevealControls()
+            case .leftArrow:
+                onJumpBackward()
+            case .rightArrow:
+                onJumpForward()
+            case .playPause:
+                onTogglePlayPause()
+            case .menu:
+                onClose()
+            default:
+                break
+            }
+        }
+    }
+
+    final class RemoteInputView: UIView {
+        weak var handlers: RemoteInputHandling?
+
+        override var canBecomeFocused: Bool {
+            true
+        }
+
+        func requestFocus() {
+            setNeedsFocusUpdate()
+            updateFocusIfNeeded()
+        }
+
+        override func pressesBegan(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
+            var didHandlePress = false
+            for press in presses {
+                handlers?.handlePress(press.type)
+                didHandlePress = true
+            }
+
+            if !didHandlePress {
+                super.pressesBegan(presses, with: event)
+            }
+        }
+    }
+}
+
+private protocol RemoteInputHandling: AnyObject {
+    func handlePress(_ pressType: UIPress.PressType)
 }
 
 private struct VLCControlsOverlay: View {
