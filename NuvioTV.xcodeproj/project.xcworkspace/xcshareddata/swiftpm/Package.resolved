@@ -1,0 +1,15 @@
+{
+  "originHash" : "3532d6f56096441e45bae1e5f5c95e632185137ef8b6c3d24fd7825afa96e641",
+  "pins" : [
+    {
+      "identity" : "vlckit",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/rsalesas/VLCKit.git",
+      "state" : {
+        "revision" : "98b75fa91691de189886656aeec17206b2829e68",
+        "version" : "3.6.6"
+      }
+    }
+  ],
+  "version" : 3
+}
