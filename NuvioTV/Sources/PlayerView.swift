@@ -9,6 +9,7 @@ struct PlayerView: View {
     @State private var playbackError: String?
     @StateObject private var vlcPlayback: VLCPlaybackModel
     @State private var showsVLCControls = true
+    @State private var usesVLCFallback = false
     @State private var hideControlsTask: Task<Void, Never>?
 
     init(source: MediaSource) {
@@ -18,7 +19,7 @@ struct PlayerView: View {
 
     var body: some View {
         ZStack {
-            if source.playbackEngine == .vlc {
+            if activePlaybackEngine == .vlc {
                 VLCVideoSurface(playback: vlcPlayback)
                     .ignoresSafeArea()
                     .onAppear {
@@ -89,19 +90,27 @@ struct PlayerView: View {
             }
         }
         .animation(.easeInOut(duration: 0.18), value: showsVLCControls)
+        .onChange(of: playbackError) { _, error in
+            guard error != nil,
+                  source.playbackEngine == .native,
+                  !usesVLCFallback else { return }
+            usesVLCFallback = true
+            playbackError = nil
+            revealVLCControls()
+        }
         .onTapGesture {
-            if source.playbackEngine == .vlc {
+            if activePlaybackEngine == .vlc {
                 revealVLCControls()
             }
         }
         .onPlayPauseCommand {
-            if source.playbackEngine == .vlc {
+            if activePlaybackEngine == .vlc {
                 vlcPlayback.togglePlayPause()
                 revealVLCControls()
             }
         }
         .onMoveCommand { direction in
-            guard source.playbackEngine == .vlc else { return }
+            guard activePlaybackEngine == .vlc else { return }
             switch direction {
             case .down:
                 revealVLCControls()
@@ -116,7 +125,7 @@ struct PlayerView: View {
             }
         }
         .onExitCommand {
-            if source.playbackEngine == .vlc && showsVLCControls && playbackError == nil {
+            if activePlaybackEngine == .vlc && showsVLCControls && playbackError == nil {
                 hideVLCControls()
             } else {
                 store.closePlayer()
@@ -124,18 +133,22 @@ struct PlayerView: View {
         }
         .onDisappear {
             hideControlsTask?.cancel()
-            if source.playbackEngine == .vlc {
+            if activePlaybackEngine == .vlc {
                 vlcPlayback.shutdown()
             }
         }
     }
 
+    private var activePlaybackEngine: PlaybackEngine {
+        usesVLCFallback ? .vlc : source.playbackEngine
+    }
+
     private var errorRecoveryMessage: String {
-        switch source.playbackEngine {
+        switch activePlaybackEngine {
         case .native:
-            "Apple TV native playback works best with HLS or MP4. MKV/WebM/AVI sources are retried with VLC when detected."
+            "Apple TV native playback works best with HLS or MP4. This stream will be retried with VLC if native playback fails."
         case .vlc:
-            "This source was opened with the VLC fallback. Try another source if it still fails, especially a smaller file or an MP4/HLS stream."
+            "This source is using VLC fallback. Try another source if it still fails, especially a smaller file or a transcoded MP4/HLS stream."
         }
     }
 

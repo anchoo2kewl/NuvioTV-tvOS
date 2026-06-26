@@ -275,10 +275,15 @@ struct NuvioStream: Codable, Identifiable, Hashable {
 
     var containerInfo: String? {
         let candidates = [filename, url, externalURL, title, name, description]
-            .compactMap { $0?.lowercased() }
+            .compactMap { $0 }
+            .flatMap { rawValue -> [String] in
+                let lowercased = rawValue.lowercased()
+                let decoded = lowercased.removingPercentEncoding ?? lowercased
+                return lowercased == decoded ? [lowercased] : [lowercased, decoded]
+            }
         let known = ["m3u8", "mp4", "m4v", "mov", "mkv", "webm", "avi", "ts"]
         for candidate in candidates {
-            for ext in known where candidate.contains(".\(ext)") || candidate.contains(" \(ext)") {
+            for ext in known where Self.containsContainer(ext, in: candidate) {
                 return ext.uppercased()
             }
         }
@@ -292,6 +297,11 @@ struct NuvioStream: Codable, Identifiable, Hashable {
 
     var preferredPlaybackEngine: PlaybackEngine {
         needsNativeTranscode || notWebReady ? .vlc : .native
+    }
+
+    private static func containsContainer(_ ext: String, in candidate: String) -> Bool {
+        let delimiters = [".", " ", "_", "-", "=", "%2e", "%252e"]
+        return delimiters.contains { candidate.contains("\($0)\(ext)") }
     }
 
     private static func firstMatch(in text: String, pattern: String) -> String? {
