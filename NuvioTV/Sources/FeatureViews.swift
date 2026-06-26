@@ -441,7 +441,7 @@ private struct HomeHero: View {
                     )
                 }
             }
-            .frame(maxWidth: .infinity, minHeight: 690, maxHeight: 690)
+            .frame(maxWidth: .infinity, minHeight: 720, maxHeight: 720)
             .clipped()
 
             LinearGradient(
@@ -453,6 +453,18 @@ private struct HomeHero: View {
             LinearGradient(
                 colors: [.black.opacity(0.88), .black.opacity(0.50), .black.opacity(0.06), .clear],
                 startPoint: .leading,
+                endPoint: .trailing
+            )
+
+            LinearGradient(
+                colors: [.black.opacity(0.74), .black.opacity(0.18), .clear],
+                startPoint: .top,
+                endPoint: .center
+            )
+
+            LinearGradient(
+                colors: [.clear, .black.opacity(0.20), .black.opacity(0.58)],
+                startPoint: .center,
                 endPoint: .trailing
             )
 
@@ -473,7 +485,8 @@ private struct HomeHero: View {
                         .foregroundStyle(.white.opacity(0.58))
                         .padding(.horizontal, 12)
                         .padding(.vertical, 7)
-                        .background(.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 6))
+                        .background(.white.opacity(0.07), in: Capsule())
+                        .background(.ultraThinMaterial, in: Capsule())
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 150)
@@ -528,7 +541,7 @@ private struct HomeHero: View {
                         } label: {
                             Label("View Details", systemImage: "play.circle.fill")
                         }
-                        .buttonStyle(.borderedProminent)
+                        .buttonStyle(HeroPrimaryButtonStyle())
 
                         if canMove {
                             Button {
@@ -561,7 +574,8 @@ private struct HomeHero: View {
         }
         .frame(maxWidth: .infinity)
         .clipped()
-        .padding(.horizontal, -82)
+        .padding(.horizontal, -160)
+        .padding(.top, -72)
     }
 
     private var heroBadges: [String] {
@@ -581,9 +595,10 @@ private struct HeroBadge: View {
             .lineLimit(1)
             .padding(.horizontal, 13)
             .padding(.vertical, 8)
-            .background(.white.opacity(0.075), in: RoundedRectangle(cornerRadius: 6))
+            .background(.white.opacity(0.070), in: Capsule())
+            .background(.ultraThinMaterial, in: Capsule())
             .overlay(
-                RoundedRectangle(cornerRadius: 6)
+                Capsule()
                     .stroke(.white.opacity(0.10), lineWidth: 1)
             )
     }
@@ -646,10 +661,6 @@ private struct CatalogPosterButton: View {
                             .padding(10)
                     }
                 }
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8)
-                        .stroke(.white.opacity(0.10), lineWidth: 1)
-                )
 
                 Text(item.name)
                     .font(.system(size: 22, weight: .medium))
@@ -773,37 +784,37 @@ private struct AddonPanel: View {
                 } label: {
                     Label(addon.enabled ? "Disable" : "Enable", systemImage: addon.enabled ? "pause.fill" : "play.fill")
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(AddonActionButtonStyle(tint: addon.enabled ? .orange : .green))
 
                 Button {
                     store.editAddon(addon)
                 } label: {
                     Label("Edit URL", systemImage: "pencil")
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(AddonActionButtonStyle(tint: .cyan))
 
                 Button {
                     store.reloadAddon(addon)
                 } label: {
                     Label("Reload", systemImage: "arrow.clockwise")
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(AddonActionButtonStyle(tint: .cyan))
 
-                Button(role: .destructive) {
+                Button {
                     store.removeAddon(addon)
                 } label: {
                     Label("Remove", systemImage: "trash")
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(AddonActionButtonStyle(tint: .red, isDestructive: true))
             }
         }
         .frame(maxWidth: 1180, alignment: .leading)
-        .padding(24)
-        .background(.white.opacity(0.055), in: RoundedRectangle(cornerRadius: 8))
-        .overlay(
-            RoundedRectangle(cornerRadius: 8)
-                .stroke(.white.opacity(0.08), lineWidth: 1)
-        )
+        .padding(.vertical, 22)
+        .overlay(alignment: .bottom) {
+            Rectangle()
+                .fill(.white.opacity(0.08))
+                .frame(height: 1)
+        }
     }
 }
 
@@ -1180,12 +1191,15 @@ private struct InfoPanel: View {
                 .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: 980, alignment: .leading)
-        .padding(24)
-        .background(.white.opacity(0.055), in: RoundedRectangle(cornerRadius: 8))
-        .overlay(
-            RoundedRectangle(cornerRadius: 8)
-                .stroke(.white.opacity(0.08), lineWidth: 1)
-        )
+        .padding(.vertical, 18)
+        .padding(.horizontal, 2)
+        .overlay(alignment: .leading) {
+            Capsule()
+                .fill(Color.cyan.opacity(0.30))
+                .frame(width: 4)
+                .padding(.vertical, 10)
+                .offset(x: -16)
+        }
     }
 }
 
@@ -1202,16 +1216,15 @@ private struct PosterButtonStyle: ButtonStyle {
         var body: some View {
             label
                 .foregroundStyle(.white)
-                .padding(2)
-                .background(isFocused ? .white.opacity(0.035) : .clear, in: RoundedRectangle(cornerRadius: 8))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 10)
-                        .stroke(isFocused ? Color.cyan.opacity(0.88) : .clear, lineWidth: 3)
-                        .padding(-7)
-                )
-                .shadow(color: isFocused ? Color.cyan.opacity(0.22) : .clear, radius: 22, x: 0, y: 0)
-                .shadow(color: isFocused ? .black.opacity(0.54) : .clear, radius: 18, x: 0, y: 12)
-                .scaleEffect(isPressed ? 0.97 : (isFocused ? 1.055 : 1))
+                .overlay(alignment: .bottomLeading) {
+                    Capsule()
+                        .fill(isFocused ? Color.cyan.opacity(0.90) : .clear)
+                        .frame(width: 64, height: 4)
+                        .offset(y: 12)
+                }
+                .shadow(color: isFocused ? Color.cyan.opacity(0.18) : .clear, radius: 20, x: 0, y: 0)
+                .shadow(color: isFocused ? .black.opacity(0.50) : .clear, radius: 16, x: 0, y: 10)
+                .scaleEffect(isPressed ? 0.98 : (isFocused ? 1.035 : 1))
                 .animation(.easeOut(duration: 0.14), value: isFocused)
         }
     }
@@ -1232,13 +1245,16 @@ private struct EpisodeCardButtonStyle: ButtonStyle {
 
         var body: some View {
             label
-                .padding(10)
-                .background(.white.opacity(isSelected ? 0.09 : 0.0), in: RoundedRectangle(cornerRadius: 10))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 10)
-                        .stroke(isFocused ? Color.white.opacity(0.80) : (isSelected ? .white.opacity(0.24) : .clear), lineWidth: isFocused ? 3 : 1)
-                )
-                .scaleEffect(isPressed ? 0.97 : (isFocused ? 1.045 : 1))
+                .padding(8)
+                .background(.white.opacity(isSelected ? 0.055 : 0.0), in: RoundedRectangle(cornerRadius: 8))
+                .overlay(alignment: .bottomLeading) {
+                    Capsule()
+                        .fill(isFocused ? Color.cyan.opacity(0.86) : (isSelected ? .white.opacity(0.28) : .clear))
+                        .frame(width: 58, height: isFocused ? 4 : 2)
+                        .offset(x: 8, y: 6)
+                }
+                .shadow(color: isFocused ? Color.cyan.opacity(0.16) : .clear, radius: 18, x: 0, y: 0)
+                .scaleEffect(isPressed ? 0.98 : (isFocused ? 1.026 : 1))
                 .animation(.easeOut(duration: 0.14), value: isFocused)
         }
     }
@@ -1257,14 +1273,17 @@ private struct MediaPanelButtonStyle: ButtonStyle {
         var body: some View {
             label
                 .foregroundStyle(.white)
-                .padding(24)
-                .background(.white.opacity(isPressed || isFocused ? 0.125 : 0.045), in: RoundedRectangle(cornerRadius: 8))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8)
-                        .stroke(isFocused ? Color.cyan.opacity(0.76) : .white.opacity(0.08), lineWidth: isFocused ? 2 : 1)
-                )
+                .padding(.horizontal, 24)
+                .padding(.vertical, 22)
+                .background(.white.opacity(isPressed || isFocused ? 0.105 : 0.030), in: RoundedRectangle(cornerRadius: 8))
+                .overlay(alignment: .leading) {
+                    Capsule()
+                        .fill(isFocused ? Color.cyan.opacity(0.86) : .clear)
+                        .frame(width: 4)
+                        .padding(.vertical, 18)
+                }
                 .shadow(color: isFocused ? Color.cyan.opacity(0.16) : .clear, radius: 18, x: 0, y: 0)
-                .scaleEffect(isPressed ? 0.98 : (isFocused ? 1.02 : 1))
+                .scaleEffect(isPressed ? 0.99 : (isFocused ? 1.012 : 1))
                 .animation(.easeOut(duration: 0.14), value: isFocused)
         }
     }
@@ -1286,13 +1305,86 @@ private struct SourceChipButtonStyle: ButtonStyle {
         var body: some View {
             label
                 .foregroundStyle(isSelected || isFocused ? .black : .white.opacity(0.82))
-                .background(isSelected || isFocused ? Color.cyan.opacity(0.92) : .white.opacity(0.065), in: RoundedRectangle(cornerRadius: 8))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8)
-                        .stroke(isFocused ? Color.white.opacity(0.8) : .white.opacity(0.10), lineWidth: isFocused ? 2 : 1)
-                )
+                .background {
+                    Capsule()
+                        .fill(isSelected || isFocused ? Color.cyan.opacity(0.92) : .white.opacity(0.050))
+                        .background(.ultraThinMaterial, in: Capsule())
+                }
+                .overlay {
+                    Capsule()
+                        .stroke(isFocused ? Color.white.opacity(0.72) : .white.opacity(0.08), lineWidth: isFocused ? 2 : 1)
+                }
                 .shadow(color: isFocused ? Color.cyan.opacity(0.18) : .clear, radius: 16, x: 0, y: 0)
-                .scaleEffect(isPressed ? 0.97 : (isFocused ? 1.035 : 1))
+                .scaleEffect(isPressed ? 0.98 : (isFocused ? 1.025 : 1))
+                .animation(.easeOut(duration: 0.14), value: isFocused)
+        }
+    }
+}
+
+private struct AddonActionButtonStyle: ButtonStyle {
+    let tint: Color
+    var isDestructive = false
+
+    func makeBody(configuration: Configuration) -> some View {
+        FocusedAddonAction(label: configuration.label, isPressed: configuration.isPressed, tint: tint, isDestructive: isDestructive)
+    }
+
+    private struct FocusedAddonAction<Label: View>: View {
+        @Environment(\.isFocused) private var isFocused
+        let label: Label
+        let isPressed: Bool
+        let tint: Color
+        let isDestructive: Bool
+
+        var body: some View {
+            label
+                .font(.callout.weight(.medium))
+                .foregroundStyle(isFocused ? .black : (isDestructive ? Color(red: 1.0, green: 0.56, blue: 0.56) : .white.opacity(0.82)))
+                .padding(.horizontal, 18)
+                .padding(.vertical, 10)
+                .background {
+                    Capsule()
+                        .fill(isFocused ? tint.opacity(0.92) : tint.opacity(isDestructive ? 0.16 : 0.10))
+                        .background(.ultraThinMaterial, in: Capsule())
+                }
+                .overlay {
+                    Capsule()
+                        .stroke(isFocused ? .white.opacity(0.70) : tint.opacity(isDestructive ? 0.36 : 0.20), lineWidth: isFocused ? 2 : 1)
+                }
+                .shadow(color: isFocused ? tint.opacity(0.20) : .clear, radius: 16, x: 0, y: 0)
+                .scaleEffect(isPressed ? 0.97 : (isFocused ? 1.025 : 1))
+                .animation(.easeOut(duration: 0.14), value: isFocused)
+        }
+    }
+}
+
+private struct HeroPrimaryButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        FocusedHeroPrimary(label: configuration.label, isPressed: configuration.isPressed)
+    }
+
+    private struct FocusedHeroPrimary<Label: View>: View {
+        @Environment(\.isFocused) private var isFocused
+        let label: Label
+        let isPressed: Bool
+
+        var body: some View {
+            label
+                .font(.system(size: 22, weight: .medium))
+                .foregroundStyle(isFocused ? .black : .white.opacity(0.88))
+                .padding(.horizontal, 28)
+                .padding(.vertical, 15)
+                .background {
+                    Capsule()
+                        .fill(isFocused ? Color.cyan.opacity(0.94) : .white.opacity(0.12))
+                        .background(.ultraThinMaterial, in: Capsule())
+                }
+                .overlay {
+                    Capsule()
+                        .stroke(isFocused ? .white.opacity(0.74) : .white.opacity(0.12), lineWidth: isFocused ? 2 : 1)
+                }
+                .shadow(color: isFocused ? Color.cyan.opacity(0.24) : .black.opacity(0.24), radius: isFocused ? 22 : 10, x: 0, y: isFocused ? 0 : 8)
+                .scaleEffect(isPressed ? 0.97 : (isFocused ? 1.025 : 1))
                 .animation(.easeOut(duration: 0.14), value: isFocused)
         }
     }
