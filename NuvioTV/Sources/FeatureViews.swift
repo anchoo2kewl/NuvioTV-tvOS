@@ -456,22 +456,54 @@ private struct HomeHero: View {
                 endPoint: .trailing
             )
 
+            VStack {
+                HStack(spacing: 12) {
+                    Image("app_logo_mark")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 34, height: 34)
+                        .opacity(0.88)
+
+                    Text("Nuvio")
+                        .font(.system(size: 22, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.82))
+
+                    Text(item.addonName)
+                        .font(.callout.weight(.medium))
+                        .foregroundStyle(.white.opacity(0.58))
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 7)
+                        .background(.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 6))
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 150)
+                .padding(.top, 44)
+
+                Spacer()
+            }
+
             HStack(alignment: .bottom, spacing: 34) {
                 RemotePoster(url: item.posterURL)
                     .frame(width: 180, height: 270)
                     .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(.white.opacity(0.16), lineWidth: 1)
+                    )
                     .shadow(color: .black.opacity(0.55), radius: 24, x: 0, y: 14)
 
-                VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: 17) {
                     Text(item.name)
                         .font(.system(size: 58, weight: .medium))
                         .lineLimit(2)
                         .frame(maxWidth: 980, alignment: .leading)
 
-                    if !item.subtitle.isEmpty {
-                        Text(item.subtitle)
-                            .font(.system(size: 23, weight: .regular))
-                            .foregroundStyle(.white.opacity(0.58))
+                    if !heroBadges.isEmpty {
+                        HStack(spacing: 10) {
+                            ForEach(heroBadges, id: \.self) { badge in
+                                HeroBadge(title: badge)
+                            }
+                        }
                     }
 
                     Text(item.description ?? "Open details to resolve streams from your Nuvio sources.")
@@ -487,7 +519,8 @@ private struct HomeHero: View {
                             } label: {
                                 Label("Previous", systemImage: "chevron.left")
                             }
-                            .buttonStyle(.bordered)
+                            .labelStyle(.iconOnly)
+                            .buttonStyle(GlassIconButtonStyle())
                         }
 
                         Button {
@@ -503,7 +536,8 @@ private struct HomeHero: View {
                             } label: {
                                 Label("Next", systemImage: "chevron.right")
                             }
-                            .buttonStyle(.bordered)
+                            .labelStyle(.iconOnly)
+                            .buttonStyle(GlassIconButtonStyle())
                         }
                     }
                     .padding(.top, 8)
@@ -528,6 +562,30 @@ private struct HomeHero: View {
         .frame(maxWidth: .infinity)
         .clipped()
         .padding(.horizontal, -82)
+    }
+
+    private var heroBadges: [String] {
+        [item.releaseInfo, item.imdbRating.map { "IMDb \($0)" }, item.genres?.prefix(3).joined(separator: " / ")]
+            .compactMap { $0 }
+            .filter { !$0.isEmpty }
+    }
+}
+
+private struct HeroBadge: View {
+    let title: String
+
+    var body: some View {
+        Text(title)
+            .font(.system(size: 20, weight: .medium))
+            .foregroundStyle(.white.opacity(0.78))
+            .lineLimit(1)
+            .padding(.horizontal, 13)
+            .padding(.vertical, 8)
+            .background(.white.opacity(0.075), in: RoundedRectangle(cornerRadius: 6))
+            .overlay(
+                RoundedRectangle(cornerRadius: 6)
+                    .stroke(.white.opacity(0.10), lineWidth: 1)
+            )
     }
 }
 
@@ -565,9 +623,33 @@ private struct CatalogPosterButton: View {
     var body: some View {
         Button(action: action) {
             VStack(alignment: .leading, spacing: 12) {
-                RemotePoster(url: item.posterURL)
-                    .frame(width: 210, height: 315)
+                ZStack(alignment: .bottomLeading) {
+                    RemotePoster(url: item.posterURL)
+                        .frame(width: 210, height: 315)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+
+                    LinearGradient(
+                        colors: [.clear, .black.opacity(0.72)],
+                        startPoint: .center,
+                        endPoint: .bottom
+                    )
                     .clipShape(RoundedRectangle(cornerRadius: 8))
+
+                    if !item.subtitle.isEmpty {
+                        Text(item.subtitle)
+                            .font(.caption.weight(.medium))
+                            .foregroundStyle(.white.opacity(0.74))
+                            .lineLimit(1)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 7)
+                            .background(.black.opacity(0.48), in: RoundedRectangle(cornerRadius: 6))
+                            .padding(10)
+                    }
+                }
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(.white.opacity(0.10), lineWidth: 1)
+                )
 
                 Text(item.name)
                     .font(.system(size: 22, weight: .medium))
@@ -844,10 +926,15 @@ private struct StreamButton: View {
         Button {
             store.play(stream, for: item)
         } label: {
-            HStack(spacing: 18) {
-                Image(systemName: stream.isPlayableOnTV ? "play.circle.fill" : "exclamationmark.triangle.fill")
-                    .font(.system(size: 36, weight: .semibold))
-                    .foregroundStyle(stream.isPlayableOnTV ? .green : .yellow)
+            HStack(spacing: 20) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(stream.isPlayableOnTV ? Color.cyan.opacity(0.14) : Color.yellow.opacity(0.14))
+                    Image(systemName: stream.isPlayableOnTV ? "play.fill" : "exclamationmark.triangle.fill")
+                        .font(.system(size: 23, weight: .medium))
+                        .foregroundStyle(stream.isPlayableOnTV ? Color.cyan.opacity(0.92) : Color.yellow.opacity(0.92))
+                }
+                .frame(width: 58, height: 58)
 
                 VStack(alignment: .leading, spacing: 6) {
                     Text(stream.displayTitle)
@@ -862,9 +949,10 @@ private struct StreamButton: View {
                             ForEach(stream.metadataBadges, id: \.self) { badge in
                                 Text(badge)
                                     .font(.caption.weight(.medium))
+                                    .foregroundStyle(.white.opacity(0.78))
                                     .padding(.horizontal, 10)
                                     .padding(.vertical, 5)
-                                    .background(.white.opacity(0.12), in: RoundedRectangle(cornerRadius: 6))
+                                    .background(streamBadgeTint(for: badge), in: RoundedRectangle(cornerRadius: 6))
                             }
                         }
                     }
@@ -876,10 +964,31 @@ private struct StreamButton: View {
                     }
                 }
                 Spacer()
+
+                Image(systemName: stream.preferredPlaybackEngine == .vlc ? "play.rectangle.on.rectangle.fill" : "appletv.fill")
+                    .font(.system(size: 22, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.42))
             }
             .frame(maxWidth: 1180, alignment: .leading)
         }
         .buttonStyle(MediaPanelButtonStyle())
+    }
+
+    private func streamBadgeTint(for badge: String) -> Color {
+        let lowercased = badge.lowercased()
+        if lowercased.contains("dolby") || lowercased.contains("hdr") || lowercased.contains("4k") || lowercased.contains("2160") {
+            return Color.cyan.opacity(0.16)
+        }
+        if lowercased.contains("size") {
+            return Color.indigo.opacity(0.18)
+        }
+        if lowercased.contains("seed") {
+            return Color.green.opacity(0.16)
+        }
+        if lowercased.contains("need") || lowercased.contains("no direct") {
+            return Color.yellow.opacity(0.14)
+        }
+        return Color.white.opacity(0.10)
     }
 }
 
@@ -1046,6 +1155,13 @@ private struct BackdropLayer: View {
                 endPoint: .bottom
             )
             .ignoresSafeArea()
+
+            LinearGradient(
+                colors: [.clear, Color.cyan.opacity(0.035), .clear],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .ignoresSafeArea()
         }
     }
 }
@@ -1086,12 +1202,15 @@ private struct PosterButtonStyle: ButtonStyle {
         var body: some View {
             label
                 .foregroundStyle(.white)
+                .padding(2)
+                .background(isFocused ? .white.opacity(0.035) : .clear, in: RoundedRectangle(cornerRadius: 8))
                 .overlay(
                     RoundedRectangle(cornerRadius: 10)
-                        .stroke(isFocused ? Color.white.opacity(0.86) : .clear, lineWidth: 4)
-                        .padding(-8)
+                        .stroke(isFocused ? Color.cyan.opacity(0.88) : .clear, lineWidth: 3)
+                        .padding(-7)
                 )
-                .shadow(color: isFocused ? .black.opacity(0.50) : .clear, radius: 16, x: 0, y: 10)
+                .shadow(color: isFocused ? Color.cyan.opacity(0.22) : .clear, radius: 22, x: 0, y: 0)
+                .shadow(color: isFocused ? .black.opacity(0.54) : .clear, radius: 18, x: 0, y: 12)
                 .scaleEffect(isPressed ? 0.97 : (isFocused ? 1.055 : 1))
                 .animation(.easeOut(duration: 0.14), value: isFocused)
         }
@@ -1139,11 +1258,12 @@ private struct MediaPanelButtonStyle: ButtonStyle {
             label
                 .foregroundStyle(.white)
                 .padding(24)
-                .background(.white.opacity(isPressed || isFocused ? 0.135 : 0.055), in: RoundedRectangle(cornerRadius: 8))
+                .background(.white.opacity(isPressed || isFocused ? 0.125 : 0.045), in: RoundedRectangle(cornerRadius: 8))
                 .overlay(
                     RoundedRectangle(cornerRadius: 8)
-                        .stroke(isFocused ? Color.white.opacity(0.72) : .white.opacity(0.08), lineWidth: isFocused ? 2 : 1)
+                        .stroke(isFocused ? Color.cyan.opacity(0.76) : .white.opacity(0.08), lineWidth: isFocused ? 2 : 1)
                 )
+                .shadow(color: isFocused ? Color.cyan.opacity(0.16) : .clear, radius: 18, x: 0, y: 0)
                 .scaleEffect(isPressed ? 0.98 : (isFocused ? 1.02 : 1))
                 .animation(.easeOut(duration: 0.14), value: isFocused)
         }
@@ -1165,13 +1285,41 @@ private struct SourceChipButtonStyle: ButtonStyle {
 
         var body: some View {
             label
-                .foregroundStyle(isSelected || isFocused ? .black : .white)
-                .background(isSelected || isFocused ? .white.opacity(0.92) : .white.opacity(0.075), in: RoundedRectangle(cornerRadius: 8))
+                .foregroundStyle(isSelected || isFocused ? .black : .white.opacity(0.82))
+                .background(isSelected || isFocused ? Color.cyan.opacity(0.92) : .white.opacity(0.065), in: RoundedRectangle(cornerRadius: 8))
                 .overlay(
                     RoundedRectangle(cornerRadius: 8)
                         .stroke(isFocused ? Color.white.opacity(0.8) : .white.opacity(0.10), lineWidth: isFocused ? 2 : 1)
                 )
+                .shadow(color: isFocused ? Color.cyan.opacity(0.18) : .clear, radius: 16, x: 0, y: 0)
                 .scaleEffect(isPressed ? 0.97 : (isFocused ? 1.035 : 1))
+                .animation(.easeOut(duration: 0.14), value: isFocused)
+        }
+    }
+}
+
+private struct GlassIconButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        FocusedGlassIcon(label: configuration.label, isPressed: configuration.isPressed)
+    }
+
+    private struct FocusedGlassIcon<Label: View>: View {
+        @Environment(\.isFocused) private var isFocused
+        let label: Label
+        let isPressed: Bool
+
+        var body: some View {
+            label
+                .font(.system(size: 21, weight: .medium))
+                .foregroundStyle(isFocused ? .black : .white.opacity(0.82))
+                .frame(width: 52, height: 52)
+                .background(isFocused ? Color.cyan.opacity(0.94) : .white.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(isFocused ? Color.white.opacity(0.78) : .white.opacity(0.10), lineWidth: 1)
+                )
+                .shadow(color: isFocused ? Color.cyan.opacity(0.20) : .clear, radius: 18, x: 0, y: 0)
+                .scaleEffect(isPressed ? 0.96 : (isFocused ? 1.04 : 1))
                 .animation(.easeOut(duration: 0.14), value: isFocused)
         }
     }
